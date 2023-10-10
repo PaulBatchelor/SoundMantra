@@ -4,6 +4,34 @@ function lilt(p)
     lil(table.concat(p, " "))
 end
 
+function draw_selected_letterbox(st)
+    local lxoff = st.lxoff
+    local tempo_yoff = st.tempo_yoff
+    local letter = st.letter
+    lilt {
+        "bprectf",
+        "[bpget [grab bp] 0]",
+        lxoff - 3, ((tempo_yoff) + 16) - 3,
+        13, 13,
+        0
+    }
+    lilt {
+        "bprect",
+        "[bpget [grab bp] 0]",
+        lxoff - 3, ((tempo_yoff) + 16) - 3,
+        13, 13,
+        1
+    }
+
+    lilt {
+        "uf2txtln",
+        "[bpget [grab bp] 0]",
+        "[grab plotter]",
+        lxoff, (tempo_yoff) + 16,
+        letter
+    }
+end
+
 function gesture(sr, gst, name, cnd, extscale)
     sr.node(gst:node()){
         name = name,
@@ -120,7 +148,7 @@ function soundmantra.generate(p)
             {0, 1, stp}
         },
         nsfrq = {
-            {0x80, 1, stp}
+            {0x20, 1, gm}
         },
     }
 
@@ -362,6 +390,15 @@ function soundmantra.generate(p)
             }
         },
         i = m_c {},
+        j = m_c {
+            nsfrq = {
+                {0x20, 1, exp},
+                {0x80, 4, exp},
+            },
+            revsz = {
+                {0xb0, 1, lin},
+            },
+        },
     }
 
     local mseq = {}
@@ -390,6 +427,7 @@ function soundmantra.generate(p)
         B = {{4, 1}, stp},
         C = {{1, 2}, stp},
         D = {{6, 1}, exp},
+        E = {{1, 3}, exp},
     }
 
 
@@ -531,7 +569,7 @@ function soundmantra.generate(p)
     rev:send(0)
 
     -- bitnoise
-    gesture(sigrunes, gst, "nsgt", cnd, extscale)
+    gesture(sigrunes, gst, "nsfrq", cnd, extscale)
     lilt {"mul", zz, 1/0xFF}
     lilt {"scale", zz, 500, 1500}
     lilt {"bitnoise", zz, 0}
@@ -712,7 +750,32 @@ function soundmantra.generate(p)
             -- horizontal center letter on playhead
             lxoff = lxoff - 4
 
+            local sel_lb = nil
             for i, t in pairs(tempo) do
+                if i == curpos then
+                    lilt {
+                        "bprectf",
+                        "[bpget [grab bp] 0]",
+                        lxoff - 3, ((tempo_yoff) + 16) - 3,
+                        13, 13,
+                        0
+                    }
+                    lilt {
+                        "bprect",
+                        "[bpget [grab bp] 0]",
+                        lxoff - 3, ((tempo_yoff) + 16) - 3,
+                        13, 13,
+                        1
+                    }
+
+                    -- store this data, we're going to
+                    -- use it to redraw it after
+                    sel_lb = {}
+                    sel_lb.lxoff = lxoff
+                    sel_lb.tempo_yoff = tempo_yoff
+                    sel_lb.letter = t[1]
+                end
+
                 lilt {
                     "uf2txtln",
                     "[bpget [grab bp] 0]",
@@ -721,18 +784,16 @@ function soundmantra.generate(p)
                     t[1]
                 }
 
-                if i == curpos then
-                    lilt {
-                        "bprect",
-                        "[bpget [grab bp] 0]",
-                        lxoff - 3, ((tempo_yoff) + 16) - 3,
-                        13, 13,
-                        1
-                    }
-                end
-
                 lxoff = lxoff + (1.0 / t[2])*unit
             end
+
+            -- redraw selected letterbox so it shows up
+            -- upfront. Not the most efficient way to
+            -- do it, but oh well.
+            if sel_lb ~= nil then
+                draw_selected_letterbox(sel_lb)
+            end
+
         end
 
         lil("grab gfx; dup")
