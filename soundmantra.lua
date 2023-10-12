@@ -399,6 +399,18 @@ function soundmantra.generate(p)
                 {0xb0, 1, lin},
             },
         },
+        k = m_c {
+            expgt = {
+                {0x00, 1, stp},
+                {0x01, 1, stp},
+                {0x00, 1, stp},
+            },
+            nsfrq = {
+                {0x00, 3, exp},
+                {0xff, 1, exp},
+            },
+
+        },
     }
 
     local mseq = {}
@@ -428,6 +440,7 @@ function soundmantra.generate(p)
         C = {{1, 2}, stp},
         D = {{6, 1}, exp},
         E = {{1, 3}, exp},
+        F = {{2, 3}, stp},
     }
 
 
