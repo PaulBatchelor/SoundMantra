@@ -40,7 +40,22 @@ function gesture(sr, gst, name, cnd, extscale)
     }
 end
 
-function sawvoice(sigrunes, cnd, gst, extscale, pitch)
+function gesturizer(sr, gst, cnd, extscale)
+    return function(name)
+        gesture(sr, gst, name, cnd, extscale)
+    end
+end
+
+function gscale(mkgst, name, mn, mx)
+    local zz = "zz"
+    mkgst(name)
+    lilt {"mul", zz, 1.0 / 0xFF}
+    lilt {"param", mn}
+    lilt {"param", mx}
+    lilt {"scale", zz, zz, zz}
+end
+
+function sawvoice(sigrunes, cnd, gst, extscale, pitch, rate)
     gesture(sigrunes, gst, pitch, cnd, extscale)
     lilt {"mtof", zz}
     lilt {"blsaw", zz}
@@ -66,6 +81,95 @@ function drawnotch(phs)
         }
 end
 
+function load_vocal_shapes(sig)
+    local zz = "zz"
+    local ah = sig:new()
+    local oo = sig:new()
+
+    lilt {"tabload", "shapes/julia_ah.raw"}
+    ah:hold_data()
+
+    lilt{"tabload", "shapes/julia_oo.raw"}
+    oo:hold_data()
+
+    return ah, oo
+end
+
+function create_tract(sig)
+    local tract = sig:new()
+    lilt {"tractnew"}
+    tract:hold_data()
+    return tract
+end
+
+function setup_diphone(sig, ah, oo, mkgst)
+    -- TODO: hookup position to gesture
+    local pos = 0
+    local zz = "zz"
+    local diphone = sig:new()
+    ah:get()
+    oo:get()
+    --lilt {"param", pos}
+    mkgst("voxshape")
+    lilt {"diphone", zz, zz, zz}
+    diphone:hold_data()
+
+    return diphone
+end
+
+function setup_tractshape(tract, diphone)
+    local zz = "zz"
+    tract:get()
+    diphone:get()
+    lilt {"tractshape", zz, zz}
+end
+
+function setup_vox(sig, mkgst)
+    local ah, oo = load_vocal_shapes(sig)
+    local tract = create_tract(sig)
+    local diphone = setup_diphone(sig, ah, oo, mkgst)
+    ah:unhold()
+    oo:unhold()
+    setup_tractshape(tract, diphone)
+    diphone:unhold()
+
+    return tract
+end
+
+function singer(tract, pitch, pads, mkgst)
+    local zz = "zz"
+    tract:get()
+
+    -- lilt {"param", 60}
+    pitch:get()
+    gscale(mkgst, "vib_rate", 5, 7.5)
+    gscale(mkgst, "vib_amt", 0, 0.5)
+    lilt {"sine", zz, zz}
+    lilt {"add", zz, zz}
+    lilt {"mtof", zz}
+    lilt {"param", 0.6}
+    lilt {"param", 0.1}
+    lilt {"param", 0.001}
+    lilt {"glot", zz, zz, zz, zz}
+    lilt {"param", 0.0}
+    lilt {"tract", zz, zz, zz}
+    lilt {"butlp", zz, 8000}
+    mkgst("vox")
+    lilt {"envar", zz, 0.1, 0.1}
+    lilt {"mul", zz, zz}
+    lilt {"mul", zz, "[dblin -3]"}
+    lilt {"dup"}
+
+    pads:get()
+    -- lilt {"peakeq", zz, 500, 500, 0.5}
+    lilt {"mul", zz, "[dblin -20]"}
+
+    lilt {"talkbox", zz, zz, 0.9}
+    lilt {"dcblocker", zz}
+    lilt {"add", zz, zz}
+
+end
+
 function soundmantra.generate(p)
     local gest = require("gestlings/gest")
     local sig = require("gestlings/sig")
@@ -78,6 +182,7 @@ function soundmantra.generate(p)
     local nbeats = p.nbeats or 7
     local tempo = p.tempo
     local tempomul = p.tempomul or 1
+    local total_dur = p.dur or 35
 
 
     lil("bpnew bp 240 320")
@@ -150,6 +255,22 @@ function soundmantra.generate(p)
         nsfrq = {
             {0x20, 1, gm}
         },
+        nsrev = {
+            {0x00, 1, gm}
+        },
+
+        vox = {
+            {0x00, 1, stp}
+        },
+        voxshape = {
+            {0x00, 1, gm}
+        },
+        vib_amt = {
+            {0x00, 1, gm}
+        },
+        vib_rate = {
+            {0x00, 1, gm}
+        }
     }
 
     m_b = morpheme.template(m_a {
@@ -225,6 +346,79 @@ function soundmantra.generate(p)
             {1, 1, stp}
         },
     })
+    m_d = morpheme.template(m_b {
+        pitch = {
+            {69, 2, gm},
+            {62, 1, gm},
+        },
+        expgt = {
+            {0x01, 1, stp},
+        },
+        revsz = {
+            {0xf0, 3, stp},
+            {0xe0, 1, gm},
+        },
+        pad1nn = {
+            {base + -2, 1, gl}
+        },
+        pad2nn = {
+            {base + 5, 1, gm}
+        },
+        pad3nn = {
+            {base + 12, 1, gm}
+        },
+        pad4nn = {
+            {base + 12 + 2, 1, gm}
+        }
+    })
+
+    m_e = morpheme.template(m_d {
+        revsz = {
+            {0xe0, 3, gm},
+        },
+        expgt = {
+            {0x01, 0, stp},
+            {0x01, 1, stp},
+            {0x01, 0, stp},
+        },
+        pitch = {
+            {67, 2, gm},
+            {60, 1, gm},
+        },
+        envtype = {
+            {0, 1, stp}
+        },
+        gt = {
+            {0, 1, stp},
+        },
+        pad1nn = {
+            {60, 1, gm}
+        },
+        pad2nn = {
+            {60 - 4, 1, gm},
+        },
+        pad3nn = {
+            {60 - 4 - 5, 1, gm}
+        },
+        pad4nn = {
+            {60 - 12, 1, gm},
+        },
+        vox = {
+            {1, 1, stp}
+        },
+        voxshape = {
+            {1, 2, gm},
+            {0, 1, gm}
+        },
+        vib_amt = {
+            {0x00, 1, exp},
+            {0xF0, 2, exp}
+        },
+        vib_rate = {
+            {0x80, 1, exp},
+            {0x90, 1, exp}
+        }
+    })
 
     local vocab = {
         a = m_a {},
@@ -259,31 +453,7 @@ function soundmantra.generate(p)
         },
 
         d = m_b {},
-        e = m_b {
-            pitch = {
-                {69, 2, gm},
-                {62, 1, gm},
-            },
-            expgt = {
-                {0x01, 1, stp},
-            },
-            revsz = {
-                {0xf0, 3, stp},
-                {0xe0, 1, gm},
-            },
-            pad1nn = {
-                {base + -2, 1, gl}
-            },
-            pad2nn = {
-                {base + 5, 1, gm}
-            },
-            pad3nn = {
-                {base + 12, 1, gm}
-            },
-            pad4nn = {
-                {base + 12 + 2, 1, gm}
-            }
-        },
+        e = m_d {},
         f = m_b {
             envgt = {
                 {1, 1, stp},
@@ -411,6 +581,131 @@ function soundmantra.generate(p)
             },
 
         },
+        l = m_d {
+            revsz = {
+                {0xe0, 1, gm},
+            },
+            pitch = {
+                {72, 2, gm},
+                {64, 1, gm},
+            },
+
+            expgt = {
+                {0x01, 1, stp},
+                {0x00, 1, stp},
+            },
+
+            pad1nn = {
+                {base, 1, gm}
+            },
+            pad2nn = {
+                {base + 7, 1, gm}
+            },
+            pad3nn = {
+                {base + 12 + 4, 1, gm},
+                {base + 12 + 5, 1, gm},
+                {base + 12 + 4, 1, gm},
+                {base + 12 + 0, 1, gm},
+                {base + 12 + 4, 1, gm},
+                {base + 12 + 5, 1, gm},
+                {base + 12 + 4, 1, gm},
+                {base + 12 + 0, 1, gm},
+
+            },
+            pad4nn = {
+                {base + 12 + 2, 2, gm},
+                {base + 12 + 7, 1, gm},
+                {base + 12 + 12, 1, gm}
+            },
+
+            nsfrq = {
+                {0x00, 2, exp},
+                {0x10, 1, lin},
+            },
+
+            nsgt = {
+                {0, 3, exp},
+                {1, 1, lin}
+            },
+
+            nsrev = {
+                {0, 1, exp},
+                {0xFF, 1, gm}
+            },
+
+        },
+        m = m_e {
+        },
+        n = m_e {
+            pitch = {
+                {67, 2, gm},
+                {68, 1, gm},
+            },
+            voxshape = {
+                {1, 2, gm},
+                {0, 1, gm}
+            },
+            pad1nn = {
+                {63, 1, gm}
+            },
+            pad2nn = {
+                {60 - 2 + 12, 1, gm},
+            },
+            pad3nn = {
+                {60 - 2 - 5, 1, gm}
+            },
+            pad4nn = {
+                {60 - 12, 1, gm},
+                {60, 1, gm},
+            },
+        },
+        o = m_e {
+            pad1nn = {
+                {62, 1, gm},
+                {60, 2, gm}
+            },
+            pad2nn = {
+                {60 - 4, 1, gm},
+            },
+            pad3nn = {
+                {60 - 4 - 5, 1, gm}
+            },
+            pad4nn = {
+                {60 - 12, 1, gm},
+            },
+        },
+        p = m_e {
+            pitch = {
+                {70, 1, gm},
+                {72, 1, gm},
+                {62, 1, gm},
+            },
+            voxshape = {
+                {1, 2, lin},
+                {0, 1, gm}
+            },
+            pad1nn = {
+                {63, 1, gm}
+            },
+            pad2nn = {
+                {60 - 2, 1, gm},
+                {60 - 2 - 12, 2, gm},
+            },
+            pad3nn = {
+                {60 - 2 - 5, 1, gm}
+            },
+            pad4nn = {
+                {60, 1, gm},
+            },
+            vib_amt = {
+                {0x10, 1, exp},
+                {0xF0, 2, gm}
+            },
+            vib_rate = {
+                {0x80, 1, exp},
+                {0xA0, 1, gm}
+            }
+        },
     }
 
     local mseq = {}
@@ -441,6 +736,7 @@ function soundmantra.generate(p)
         D = {{6, 1}, exp},
         E = {{1, 3}, exp},
         F = {{2, 3}, stp},
+        G = {{1, 4}, stp},
     }
 
 
@@ -477,7 +773,7 @@ function soundmantra.generate(p)
     lilt{"phasor", 1/7, 0}
     --lilt{"gestcnd", bpm}
     local cnd_prime = sig:new()
-    cnd_prime:hold()
+    cnd_prime:hold_cabnew()
 
 
     local extscale = mseqdur
@@ -494,7 +790,7 @@ function soundmantra.generate(p)
         lilt{"rephasor", zz, 1.0}
     end
     local cnd0 = sig:new()
-    cnd0:hold()
+    cnd0:hold_cabnew()
 
 
 
@@ -509,7 +805,7 @@ function soundmantra.generate(p)
     cnd0:get()
     lilt{"rephasor", zz, extscale}
     local cnd = sig:new()
-    cnd:hold()
+    cnd:hold_cabnew()
     extscale = 1
 
     gesture(sigrunes, gst, "gt", cnd, extscale)
@@ -530,7 +826,10 @@ function soundmantra.generate(p)
     expenv:hold()
 
     gesture(sigrunes, gst, "pitch", cnd, extscale)
+    local pitch = sig:new()
+    pitch:hold_cabnew()
 
+    pitch:get()
     expenv:get()
     lilt{"scale", zz, 5.0, 7}
     expenv:get()
@@ -542,6 +841,7 @@ function soundmantra.generate(p)
     lilt{"blsquare", zz}
     -- lilt{"butbp", zz, 500, 500}
     lilt{"butbp", zz, 500, 500}
+
 
     gesture(sigrunes, gst, "cutoff", cnd, extscale)
     lilt {"mul", zz, 1/0xFF}
@@ -561,13 +861,20 @@ function soundmantra.generate(p)
     rev:throw(-6)
 
     local base = 48
-    sawvoice(sigrunes, cnd, gst, extscale, "pad1nn")
-    sawvoice(sigrunes, cnd, gst, extscale, "pad2nn")
+    sawvoice(sigrunes, cnd, gst, extscale, "pad1nn", 6)
+    sawvoice(sigrunes, cnd, gst, extscale, "pad2nn", 6.2)
     lilt {"add", zz, zz}
-    sawvoice(sigrunes, cnd, gst, extscale, "pad3nn")
+    sawvoice(sigrunes, cnd, gst, extscale, "pad3nn", 6.1)
     lilt {"add", zz, zz}
-    sawvoice(sigrunes, cnd, gst, extscale, "pad4nn")
+    sawvoice(sigrunes, cnd, gst, extscale, "pad4nn", 6.5)
     lilt {"add", zz, zz}
+
+    local pads = sig:new()
+
+    pads:hold()
+
+    pads:get()
+
     lilt {"butlp", zz, 500}
 
     lilt {"mul", zz, 0.1}
@@ -592,7 +899,23 @@ function soundmantra.generate(p)
     lilt {"mul", zz, zz}
     lilt{"dup", zz, zz}
     lilt{"buthp", zz, 300}
-    rev:send(-6)
+
+    lilt {"regget", rev.reg}
+    gesture(sigrunes, gst, "nsrev", cnd, extscale)
+    lilt {"mul", zz, 1/0xFF}
+    lilt {"scale", zz, -6, 6}
+    lilt {"dblin", zz}
+    lilt {"mix", zz, zz, zz}
+    -- rev:send(-6)
+    lilt{"add", zz, zz}
+
+    -- Singer
+    local mkgst = gesturizer(sigrunes, gst, cnd, extscale)
+    local tract = setup_vox(sig, mkgst)
+    singer(tract, pitch, pads, mkgst)
+    pads:unhold()
+    pitch:unhold()
+    rev:throw(-10)
     lilt{"add", zz, zz}
 
     -- scale dry signal reverb post-fader for distant sound
@@ -615,7 +938,7 @@ function soundmantra.generate(p)
     lil("param 10000")
     lilt{"bigverb", zz, zz, zz, zz}
     lil("drop")
-    lilt {"mul", zz, "[dblin -7]"}
+    lilt {"mul", zz, "[dblin -10]"}
     lilt {"dcblocker", zz}
     lilt {"add", zz, zz}
     lilt {"limit", zz, -0.99, 0.99}
@@ -657,7 +980,7 @@ function soundmantra.generate(p)
     end
 
     local imseqdur = 1.0 / mseqdur
-    local nframes = 60*35
+    local nframes = 60*total_dur
 
     local linesz = 240-32
     local totalunits = 0

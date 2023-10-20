@@ -55,6 +55,86 @@ function Sig:hold(lil_eval)
 
     self.reg = reg
 end
+function Sig:hold_cabnew(lil_eval)
+    -- can be a callback used to simulate holding
+    lil_eval = lil_eval or lil_default
+    if self.reg >= 0 then
+        error("can't hold, already holding")
+    end
+
+    -- regnxt actually has to be called to see if it is
+    -- working
+
+    local lstr = "param [regnxt 0]"
+    -- if lil_eval ~= lil then
+    --     lil_eval(lstr)
+    -- end
+
+    lil(lstr)
+
+
+    local reg = pop()
+
+    if reg < 0 then
+        error("invalid index")
+    end
+
+    -- cabnew: allocates to extbuf
+    lil_eval({"cabnew", "zz"})
+    -- hold/regset can be simulated without issue
+    lil_eval({"hold", "zz"})
+    -- lil_eval("hold zz # sig")
+    lil_eval({"regset", "zz",reg})
+
+    -- regmrk actually has to be called for it to work
+    -- local lstr = string.format("regmrk %d", reg)
+    local lstr = {"regmrk", reg}
+
+    if lil_eval ~= lil then
+        lil_eval(lstr)
+    end
+
+    lil(table.concat(lstr, " "))
+    -- lil(string.format("regset zz %d; regmrk %d", reg, reg))
+
+    self.reg = reg
+end
+function Sig:hold_data(lil_eval)
+    -- can be a callback used to simulate holding
+    lil_eval = lil_eval or lil_default
+    if self.reg >= 0 then
+        error("can't hold, already holding")
+    end
+
+    -- regnxt actually has to be called to see if it is
+    -- working
+
+    local lstr = "param [regnxt 0]"
+    -- if lil_eval ~= lil then
+    --     lil_eval(lstr)
+    -- end
+
+    lil(lstr)
+
+
+    local reg = pop()
+
+    if reg < 0 then
+        error("invalid index")
+    end
+
+    lil_eval({"regset", "zz",reg})
+    local lstr = {"regmrk", reg}
+
+    if lil_eval ~= lil then
+        lil_eval(lstr)
+    end
+
+    lil(table.concat(lstr, " "))
+
+    self.reg = reg
+    self.is_data = true
+end
 function Sig:unhold(lil_eval)
     lil_eval = lil_eval or lil_default
     if self.reg < 0 then
@@ -63,8 +143,10 @@ function Sig:unhold(lil_eval)
 
     -- lil_eval(string.format("unhold [regget %d]; regclr %d",
     --    self.reg, self.reg))
-    lil_eval({"regget", self.reg})
-    lil_eval({"unhold", "zz"})
+    if self.is_data ~= true then
+        lil_eval({"regget", self.reg})
+        lil_eval({"unhold", "zz"})
+    end
     lil_eval({"regclr", self.reg})
 
     self.reg = -1
