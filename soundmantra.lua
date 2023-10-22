@@ -742,6 +742,36 @@ function soundmantra.generate(p)
                 {60, 1, gm},
             },
         },
+        r = m_e {
+            pitch = {
+                {60 - 7, 1, exp},
+            },
+            pad1nn = {
+                {60 + 1, 1, exp}
+            },
+            pad2nn = {
+                {(60 + 12) + 2, 1, exp}
+            },
+            pad3nn = {
+                {(60 - 12) + 3, 1, exp}
+            },
+            pad4nn = {
+                {(60 - 24) + 4, 1, exp},
+            },
+            vib_amt = {
+                {0x00, 1, exp},
+                {0xFF, 1, gm}
+            },
+            vib_rate = {
+                {0x00, 2, exp},
+                {0xDF, 1, gm}
+            },
+            voxshape = {
+                {1, 1, exp},
+                {0, 1, gm}
+            },
+
+        },
     }
 
     local mseq = {}
