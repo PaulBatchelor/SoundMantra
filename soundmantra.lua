@@ -772,6 +772,99 @@ function soundmantra.generate(p)
             },
 
         },
+        s = m_a {
+            gt = {
+                {1, 1, gt},
+                {1, 1, gt},
+                {1, 2, gt},
+                {1, 2, gt},
+                {1, 3, gt},
+                {1, 3, gt},
+            },
+            pitch = {
+                {72 + 7 + 12, 3, exp},
+                {72 + 7, 1, gm},
+            },
+            revsz = {
+                {0x1F, 1, gm},
+                {0xFF, 1, gm},
+                {0x1F, 1, gm},
+            },
+            expgt = {
+                {0x01, 1, stp},
+                {0x00, 1, stp},
+            },
+            pad1nn = {
+                {63 + 2 + 24 + 3, 1, gm}
+            },
+            pad2nn = {
+                {60 - 2 + 3, 1, gm},
+                {60 - 2 - 12 + 3, 2, gm},
+            },
+            pad3nn = {
+                {60 - 2 - 5 + 3, 1, gm}
+            },
+            pad4nn = {
+                {60 + 3, 1, gm},
+            },
+        },
+        t = m_b {
+            pitch = {
+                {72 + 2, 2, gl},
+                {36, 1, exp},
+                {48, 1, gl},
+            },
+            revsz = {
+                {0x80, 1, exp},
+                {0xff, 1, gm},
+            },
+            nsgt = {
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+            },
+            pad1nn = {
+                {63 + 2 + 24 + 3, 1, gm}
+            },
+            pad2nn = {
+                {60 - 2 + 3, 1, gm},
+                {60 - 2 - 12 + 3, 2, gm},
+            },
+            pad3nn = {
+                {60 - 2 - 5 + 3, 1, gm}
+            },
+            pad4nn = {
+                {60 + 3, 1, gm},
+            },
+            vib_amt = {
+                {0xFF, 1, gm},
+                {0x00, 1, exp},
+            },
+            vib_rate = {
+                {0xDF, 1, gm},
+                {0x00, 2, exp},
+            },
+            voxshape = {
+                {0, 1, gm},
+                {1, 1, exp},
+            },
+            vox = {
+                {1, 1, stp},
+            },
+        },
     }
 
     local mseq = {}
