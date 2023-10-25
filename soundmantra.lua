@@ -865,6 +865,43 @@ function soundmantra.generate(p)
                 {1, 1, stp},
             },
         },
+        u = m_c {
+            revsz = {
+                {0x80, 1, exp},
+                {0xff, 1, gm},
+            },
+            nsgt = {
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+                {1, 1, stp},
+                {0, 1, stp},
+            },
+            pad1nn = {
+                {63 + 2 + 24 + 3, 1, gm}
+            },
+            pad2nn = {
+                {60 - 2 + 3, 1, gm},
+                {60 - 2 - 12 + 3, 2, gm},
+            },
+            pad3nn = {
+                {60 - 2 - 5 + 3, 1, gm}
+            },
+            pad4nn = {
+                {60 + 3, 1, gm},
+            },
+        },
     }
 
     local mseq = {}
