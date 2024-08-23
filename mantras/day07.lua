@@ -1,7 +1,7 @@
 soundmantra = require("soundmantra")
 
 soundmantra.generate {
-    name = "day7",
+    name = "day07",
     seq = {
         {"g", 3},
         {"a", 1},

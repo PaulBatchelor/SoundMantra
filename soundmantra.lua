@@ -1339,19 +1339,24 @@ function soundmantra.generate(p)
     lil("gfxclose")
     lilt {"gfxmp4", "tmp.h264", "tmp.mp4"}
 
+    -- needed to close out the WAV file
+    mnoreset()
     ffmpeg_args = {
         "export AV_LOG_FORCE_NOCOLOR=1;",
         "ffmpeg",
         "-hide_banner", "-loglevel", "error", "-y",
         "-i", "tmp.mp4",
-        "-i", "tmp.wav",
+        --"-i", "tmp.wav",
+        "-i", "tmp_norm.wav",
         "-pix_fmt", "yuv420p",
+        "-vf", "\"scale=iw*2:ih*2:flags=neighbor\"",
         "-acodec", "aac",
         -- "-b:a", "320k",
         "-vbr", 4,
         name .. ".mp4"
     }
 
+    os.execute("sox tmp.wav -c 2 tmp_norm.wav norm -1")
     os.execute(table.concat(ffmpeg_args, " "))
 
 end
