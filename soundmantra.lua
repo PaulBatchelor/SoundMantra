@@ -1192,172 +1192,288 @@ function soundmantra.generate(p)
     local curpos = 0
     local linepos = 16
 
-    for n=1, nframes do
-        if n % 60 == 0 then
-            print(string.format("%d\t %02g%%", n, 100*(n / nframes)))
-        end
-        lil("compute 15")
-        lilt {"bpfill", "[bpget [grab bp] 0]", 0}
-        lil("bpcirc [bpget [grab bp] 0] 120 120 100 1")
-        lil("bpcircf [bpget [grab bp] 0] 120 120 4 1")
+    lilt {"bpfill", "[bpget [grab bp] 0]", 0}
+    lil("bpcirc [bpget [grab bp] 0] 120 120 100 1")
+    --lil("bpcircf [bpget [grab bp] 0] 120 120 4 1")
 
-        local d = 0
-        for _,s in pairs(seq) do
-            drawbox(d*imseqdur, s[1])
-            d = d + s[2]
-        end
-        local phs = valutil.get("phs")
-        xpos = 120 + (120 - 8)*math.sin(twopi * phs)
-        ypos = (120 - (120 - 8)*math.cos(twopi * phs))
+    local d = 0
+    for _,s in pairs(seq) do
+        drawbox(d*imseqdur, s[1])
+        d = d + s[2]
+    end
 
+    if tempo ~= nil then
+        -- lilt {
+        --     "bpline",
+        --     "[bpget [grab bp] 0]",
+        --     120, 120,
+        --     prime_xpos, prime_ypos,
+        --     1
+        -- }
+
+        -- Compass
+        lil("bpcirc [bpget [grab bp] 0] 120 120 60 1")
+        local phs = 0
+
+        for i=1,12 do
+            drawnotch((i - 1) / 8)
+        end
+    end
+
+    if temponumgst ~= nil then
+        local ramp = gestvm_last_conductor(temponumgst)
+
+        if ramp < lastramp then
+            if curpos > 0 then
+                linepos = linepos + (1.0/tempo[curpos][2])*unit
+            end
+            curpos = (curpos + 1)
+            if curpos > #tempo then
+                curpos = 1
+                linepos = 16
+            end
+        end
+
+        lastramp = ramp
+        local tempo_yoff = 240 + 8
         lilt {
             "bpline",
             "[bpget [grab bp] 0]",
-            120, 120,
-            xpos, ypos,
+            16, tempo_yoff,
+            240-16, tempo_yoff,
             1
         }
 
-        -- Prime hand
-        local phs = valutil.get("prime")
-        primesz = 80
-        prime_xpos = 120 + primesz*math.sin(twopi * phs)
-        prime_ypos = (120 - primesz*math.cos(twopi * phs))
+        -- lilt {
+        --     "bprectf",
+        --     "[bpget [grab bp] 0]",
+        --     --16 + linesz*ramp, (tempo_yoff) - 8,
+        --     (linepos - 1) + ramp*(1.0/tempo[curpos][2])*unit,
+        --     (tempo_yoff) - 8,
+        --     3, 17,
+        --     1
+        -- }
 
+        local lxoff = 16
 
-        if tempo ~= nil then
+        -- horizontal center letter on playhead
+        lxoff = lxoff - 4
+
+        local sel_lb = nil
+        for i, t in pairs(tempo) do
+            -- if i == curpos then
+            --     lilt {
+            --         "bprectf",
+            --         "[bpget [grab bp] 0]",
+            --         lxoff - 3, ((tempo_yoff) + 16) - 3,
+            --         13, 13,
+            --         0
+            --     }
+            --     lilt {
+            --         "bprect",
+            --         "[bpget [grab bp] 0]",
+            --         lxoff - 3, ((tempo_yoff) + 16) - 3,
+            --         13, 13,
+            --         1
+            --     }
+
+            --     -- store this data, we're going to
+            --     -- use it to redraw it after
+            --     sel_lb = {}
+            --     sel_lb.lxoff = lxoff
+            --     sel_lb.tempo_yoff = tempo_yoff
+            --     sel_lb.letter = t[1]
+            -- end
+
             lilt {
-                "bpline",
+                "uf2txtln",
                 "[bpget [grab bp] 0]",
-                120, 120,
-                prime_xpos, prime_ypos,
-                1
+                "[grab plotter]",
+                lxoff, (tempo_yoff) + 16,
+                t[1]
             }
 
-            -- Compass
-            lil("bpcirc [bpget [grab bp] 0] 120 120 60 1")
-            local phs = 0
-
-            for i=1,12 do
-                drawnotch((i - 1) / 8)
-            end
+            lxoff = lxoff + (1.0 / t[2])*unit
         end
 
-        if temponumgst ~= nil then
-            local ramp = gestvm_last_conductor(temponumgst)
+        -- redraw selected letterbox so it shows up
+        -- upfront. Not the most efficient way to
+        -- do it, but oh well.
+        -- if sel_lb ~= nil then
+        --     draw_selected_letterbox(sel_lb)
+        -- end
 
-            if ramp < lastramp then
-                if curpos > 0 then
-                    linepos = linepos + (1.0/tempo[curpos][2])*unit
-                end
-                curpos = (curpos + 1)
-                if curpos > #tempo then
-                    curpos = 1
-                    linepos = 16
-                end
-            end
-
-            lastramp = ramp
-            local tempo_yoff = 240 + 8
-            lilt {
-                "bpline",
-                "[bpget [grab bp] 0]",
-                16, tempo_yoff,
-                240-16, tempo_yoff,
-                1
-            }
-
-            lilt {
-                "bprectf",
-                "[bpget [grab bp] 0]",
-                --16 + linesz*ramp, (tempo_yoff) - 8,
-                (linepos - 1) + ramp*(1.0/tempo[curpos][2])*unit,
-                (tempo_yoff) - 8,
-                3, 17,
-                1
-            }
-
-            local lxoff = 16
-
-            -- horizontal center letter on playhead
-            lxoff = lxoff - 4
-
-            local sel_lb = nil
-            for i, t in pairs(tempo) do
-                if i == curpos then
-                    lilt {
-                        "bprectf",
-                        "[bpget [grab bp] 0]",
-                        lxoff - 3, ((tempo_yoff) + 16) - 3,
-                        13, 13,
-                        0
-                    }
-                    lilt {
-                        "bprect",
-                        "[bpget [grab bp] 0]",
-                        lxoff - 3, ((tempo_yoff) + 16) - 3,
-                        13, 13,
-                        1
-                    }
-
-                    -- store this data, we're going to
-                    -- use it to redraw it after
-                    sel_lb = {}
-                    sel_lb.lxoff = lxoff
-                    sel_lb.tempo_yoff = tempo_yoff
-                    sel_lb.letter = t[1]
-                end
-
-                lilt {
-                    "uf2txtln",
-                    "[bpget [grab bp] 0]",
-                    "[grab plotter]",
-                    lxoff, (tempo_yoff) + 16,
-                    t[1]
-                }
-
-                lxoff = lxoff + (1.0 / t[2])*unit
-            end
-
-            -- redraw selected letterbox so it shows up
-            -- upfront. Not the most efficient way to
-            -- do it, but oh well.
-            if sel_lb ~= nil then
-                draw_selected_letterbox(sel_lb)
-            end
-
-        end
-
-        lil("grab gfx; dup")
-        lilt{"gfxrectf", 0, 0, 240, 320, 1}
-        lilt{"bptr", "[grab bp]", 0, 0, 240, 320, 0, 0, 0}
-        lil("grab gfx; dup")
-        lil("gfxtransfer; gfxappend")
     end
+    lil("bppng [grab bp] "  .. name .. ".png")
 
-    lil("grab gfx")
-    lil("gfxclose")
-    lilt {"gfxmp4", "tmp.h264", "tmp.mp4"}
 
-    -- needed to close out the WAV file
-    mnoreset()
-    ffmpeg_args = {
-        "export AV_LOG_FORCE_NOCOLOR=1;",
-        "ffmpeg",
-        "-hide_banner", "-loglevel", "error", "-y",
-        "-i", "tmp.mp4",
-        --"-i", "tmp.wav",
-        "-i", "tmp_norm.wav",
-        "-pix_fmt", "yuv420p",
-        "-vf", "\"scale=iw*2:ih*2:flags=neighbor\"",
-        "-acodec", "aac",
-        -- "-b:a", "320k",
-        "-vbr", 4,
-        name .. ".mp4"
-    }
 
-    os.execute("sox tmp.wav -c 2 tmp_norm.wav norm -1")
-    os.execute(table.concat(ffmpeg_args, " "))
+    -- for n=1, nframes do
+    --     if n % 60 == 0 then
+    --         print(string.format("%d\t %02g%%", n, 100*(n / nframes)))
+    --     end
+    --     lil("compute 15")
+    --     lilt {"bpfill", "[bpget [grab bp] 0]", 0}
+    --     lil("bpcirc [bpget [grab bp] 0] 120 120 100 1")
+    --     lil("bpcircf [bpget [grab bp] 0] 120 120 4 1")
+
+    --     local d = 0
+    --     for _,s in pairs(seq) do
+    --         drawbox(d*imseqdur, s[1])
+    --         d = d + s[2]
+    --     end
+    --     local phs = valutil.get("phs")
+    --     xpos = 120 + (120 - 8)*math.sin(twopi * phs)
+    --     ypos = (120 - (120 - 8)*math.cos(twopi * phs))
+
+    --     lilt {
+    --         "bpline",
+    --         "[bpget [grab bp] 0]",
+    --         120, 120,
+    --         xpos, ypos,
+    --         1
+    --     }
+
+    --     -- Prime hand
+    --     local phs = valutil.get("prime")
+    --     primesz = 80
+    --     prime_xpos = 120 + primesz*math.sin(twopi * phs)
+    --     prime_ypos = (120 - primesz*math.cos(twopi * phs))
+
+
+    --     if tempo ~= nil then
+    --         lilt {
+    --             "bpline",
+    --             "[bpget [grab bp] 0]",
+    --             120, 120,
+    --             prime_xpos, prime_ypos,
+    --             1
+    --         }
+
+    --         -- Compass
+    --         lil("bpcirc [bpget [grab bp] 0] 120 120 60 1")
+    --         local phs = 0
+
+    --         for i=1,12 do
+    --             drawnotch((i - 1) / 8)
+    --         end
+    --     end
+
+    --     if temponumgst ~= nil then
+    --         local ramp = gestvm_last_conductor(temponumgst)
+
+    --         if ramp < lastramp then
+    --             if curpos > 0 then
+    --                 linepos = linepos + (1.0/tempo[curpos][2])*unit
+    --             end
+    --             curpos = (curpos + 1)
+    --             if curpos > #tempo then
+    --                 curpos = 1
+    --                 linepos = 16
+    --             end
+    --         end
+
+    --         lastramp = ramp
+    --         local tempo_yoff = 240 + 8
+    --         lilt {
+    --             "bpline",
+    --             "[bpget [grab bp] 0]",
+    --             16, tempo_yoff,
+    --             240-16, tempo_yoff,
+    --             1
+    --         }
+
+    --         lilt {
+    --             "bprectf",
+    --             "[bpget [grab bp] 0]",
+    --             --16 + linesz*ramp, (tempo_yoff) - 8,
+    --             (linepos - 1) + ramp*(1.0/tempo[curpos][2])*unit,
+    --             (tempo_yoff) - 8,
+    --             3, 17,
+    --             1
+    --         }
+
+    --         local lxoff = 16
+
+    --         -- horizontal center letter on playhead
+    --         lxoff = lxoff - 4
+
+    --         local sel_lb = nil
+    --         for i, t in pairs(tempo) do
+    --             if i == curpos then
+    --                 lilt {
+    --                     "bprectf",
+    --                     "[bpget [grab bp] 0]",
+    --                     lxoff - 3, ((tempo_yoff) + 16) - 3,
+    --                     13, 13,
+    --                     0
+    --                 }
+    --                 lilt {
+    --                     "bprect",
+    --                     "[bpget [grab bp] 0]",
+    --                     lxoff - 3, ((tempo_yoff) + 16) - 3,
+    --                     13, 13,
+    --                     1
+    --                 }
+
+    --                 -- store this data, we're going to
+    --                 -- use it to redraw it after
+    --                 sel_lb = {}
+    --                 sel_lb.lxoff = lxoff
+    --                 sel_lb.tempo_yoff = tempo_yoff
+    --                 sel_lb.letter = t[1]
+    --             end
+
+    --             lilt {
+    --                 "uf2txtln",
+    --                 "[bpget [grab bp] 0]",
+    --                 "[grab plotter]",
+    --                 lxoff, (tempo_yoff) + 16,
+    --                 t[1]
+    --             }
+
+    --             lxoff = lxoff + (1.0 / t[2])*unit
+    --         end
+
+    --         -- redraw selected letterbox so it shows up
+    --         -- upfront. Not the most efficient way to
+    --         -- do it, but oh well.
+    --         if sel_lb ~= nil then
+    --             draw_selected_letterbox(sel_lb)
+    --         end
+
+    --     end
+
+    --     lil("grab gfx; dup")
+    --     lilt{"gfxrectf", 0, 0, 240, 320, 1}
+    --     lilt{"bptr", "[grab bp]", 0, 0, 240, 320, 0, 0, 0}
+    --     lil("grab gfx; dup")
+    --     lil("gfxtransfer; gfxappend")
+    -- end
+
+    -- lil("grab gfx")
+    -- lil("gfxclose")
+    -- lilt {"gfxmp4", "tmp.h264", "tmp.mp4"}
+
+    -- -- needed to close out the WAV file
+    -- mnoreset()
+    -- ffmpeg_args = {
+    --     "export AV_LOG_FORCE_NOCOLOR=1;",
+    --     "ffmpeg",
+    --     "-hide_banner", "-loglevel", "error", "-y",
+    --     "-i", "tmp.mp4",
+    --     --"-i", "tmp.wav",
+    --     "-i", "tmp_norm.wav",
+    --     "-pix_fmt", "yuv420p",
+    --     "-vf", "\"scale=iw*2:ih*2:flags=neighbor\"",
+    --     "-acodec", "aac",
+    --     -- "-b:a", "320k",
+    --     "-vbr", 4,
+    --     name .. ".mp4"
+    -- }
+
+    -- os.execute("sox tmp.wav -c 2 tmp_norm.wav norm -1")
+    -- os.execute(table.concat(ffmpeg_args, " "))
 
 end
 
